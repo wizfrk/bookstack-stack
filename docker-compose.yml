@@ -1,34 +1,42 @@
 ---
 version: "3"
 services:
-  bookstack:
-    image: linuxserver/bookstack
-    container_name: bookstack
-    environment:
-      - PUID=1001
-      - PGID=1001
-      - DB_HOST=localhost
-      - DB_USER=root
-      - DB_PASS=$(MYSQL_PASS)
-      - DB_DATABASE=bookstackapp
-      - APPURL=$(BOOKSTACK_URL)
-    volumes:
-      - $(CONFIG)/bookstack:/config
-    ports:
-      - 6875:80
-    mem_limit: 500m
-    restart: unless-stopped
   mariadb:
     image: linuxserver/mariadb
     container_name: mariadb
     environment:
       - PUID=$(PUID)
       - PGID=$(PGID)
-      - MYSQL_ROOT_PASSWORD=$(MYSQL_PASS)
       - TZ=$(TZ)
+      - MYSQL_ROOT_PASSWORD=$(MYSQL_PASS)
+      - MYSQL_DATABASE=bookstack
+      - MYSQL_USER=bookstack
+      - MYSQL_PASSWORD=$(BOOKSTACK_MYSQL_PASS)
     volumes:
       - $(CONFIG)/mariadb:/config
     ports:
       - 3306:3306
+    mem_limit: 500m
+    restart: unless-stopped
+  bookstack:
+    image: linuxserver/bookstack
+    container_name: bookstack
+    depends_on:
+    - mariadb
+    environment:
+      - PUID=$(PUID)
+      - PGID=$(PGID)
+      - TZ=$(TZ)
+      - DB_HOST=mariadb:3306
+      - DB_USER=bookstack
+      - DB_PASS=$(BOOKSTACK_MYSQL_PASS)
+      - DB_DATABASE=bookstackapp
+      - APPURL=$(BOOKSTACK_URL)
+    volumes:
+      - $(CONFIG)/bookstack:/config
+      - uploads:/var/www/bookstack/public/uploads
+      - storage-uploads:/var/www/bookstack/public/storage
+    ports:
+      - 6875:80
     mem_limit: 500m
     restart: unless-stopped
